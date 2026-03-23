@@ -1,7 +1,7 @@
-package com.example.presidentstaxcollection.registry;
+package com.mpisoni.presidentstaxcollection.registry;
 
-import com.example.presidentstaxcollection.PresidentsTaxCollection;
-import com.example.presidentstaxcollection.entity.TaxCollectorEntity;
+import com.mpisoni.presidentstaxcollection.PresidentsTaxCollection;
+import com.mpisoni.presidentstaxcollection.entity.TaxCollectorEntity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraftforge.event.entity.EntityAttributeCreationEvent;

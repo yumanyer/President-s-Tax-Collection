@@ -1,6 +1,6 @@
-package com.example.presidentstaxcollection.client;
+package com.mpisoni.presidentstaxcollection.client;
 
-import com.example.presidentstaxcollection.entity.TaxCollectorEntity;
+import com.mpisoni.presidentstaxcollection.entity.TaxCollectorEntity;
 import net.minecraft.client.model.PlayerModel;
 import net.minecraft.client.model.geom.ModelLayers;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
@@ -15,9 +15,6 @@ public class TaxCollectorRenderer extends HumanoidMobRenderer<TaxCollectorEntity
 
     @Override
     public ResourceLocation getTextureLocation(TaxCollectorEntity entity) {
-        return ResourceLocation.fromNamespaceAndPath(
-                "minecraft",
-                "textures/entity/villager/villager.png"
-        );
+        return new ResourceLocation("presidentstaxcollection", "textures/entity/tax_collector.png");
     }
 }

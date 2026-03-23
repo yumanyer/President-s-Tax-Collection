@@ -1,4 +1,4 @@
-package com.example.presidentstaxcollection;
+package com.mpisoni.presidentstaxcollection;
 
 import net.minecraftforge.common.ForgeConfigSpec;
 

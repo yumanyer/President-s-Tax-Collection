@@ -1,6 +1,6 @@
-package com.example.presidentstaxcollection;
+package com.mpisoni.presidentstaxcollection;
 
-import com.example.presidentstaxcollection.registry.ModEntities;
+import com.mpisoni.presidentstaxcollection.registry.ModEntities;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.common.Mod;
@@ -25,7 +25,7 @@ public class PresidentsTaxCollection {   // <-- CAMBIO AQUÍ
         ModEntities.ENTITY_TYPES.register(modBus);
 
         // ── Config ───────────────────────────────────────────────────────────
-        //ModLoadingContext.get().registerConfig(ModConfig.Type.SERVER, Config.SPEC);
+        net.minecraftforge.fml.ModLoadingContext.get().registerConfig(net.minecraftforge.fml.config.ModConfig.Type.SERVER, Config.SPEC);
 
         // ── Setup ────────────────────────────────────────────────────────────
         modBus.addListener(this::commonSetup);
