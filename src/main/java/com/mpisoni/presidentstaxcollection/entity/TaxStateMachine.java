@@ -70,7 +70,7 @@ public class TaxStateMachine {
 
         // Verificación de distancia
         if (mob.distanceTo(targetPlayer) > 16.0) {
-            targetPlayer.sendSystemMessage(Component.literal("§c[Recaudador] §f¡No puedes huir de tus obligaciones!"));
+            targetPlayer.sendSystemMessage(Component.literal("§c[El Presi] §f De la muerte y los impuetos no se salva nadie"));
             transitionTo(TaxCollectorEntity.TaxState.HOSTILE);
             return;
         }
@@ -80,13 +80,13 @@ public class TaxStateMachine {
         if (paymentTimer == Config.taxPaymentTime.get() / 2) {
             int secondsLeft = paymentTimer / 20;
             targetPlayer.sendSystemMessage(
-                    Component.literal("§e[Recaudador] §fTe quedan §c" + secondsLeft + " §fsegundos para pagar.")
+                    Component.literal("§e[El Presi] §fTe quedan §c" + secondsLeft + " §fsegundos para pagar.")
             );
         }
 
         if (paymentTimer <= 0) {
             targetPlayer.sendSystemMessage(
-                    Component.literal("§c[Recaudador] §f¡Tiempo agotado! ¡Pagarás con tu vida!")
+                    Component.literal("§c[El Presi] §f AHH TE QUERES HACER EL PILLO VENI QUE TE ENSEÑO QUE LE HACEMOS A LOS PILLOS")
             );
             transitionTo(TaxCollectorEntity.TaxState.HOSTILE);
         }
@@ -113,7 +113,7 @@ public class TaxStateMachine {
 
         int seconds = Config.taxPaymentTime.get() / 20;
         targetPlayer.sendSystemMessage(
-                Component.literal("§6[Recaudador] §fDebes pagar §e"
+                Component.literal("§6[El Presi] §fDebes pagar §e"
                         + Config.taxAmount.get() + " diamante(s)§f. Tienes §c"
                         + seconds + " segundos§f.")
         );

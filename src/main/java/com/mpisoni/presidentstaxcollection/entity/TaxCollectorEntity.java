@@ -77,12 +77,12 @@ public class TaxCollectorEntity extends PathfinderMob {
         if (this.level().isClientSide) return InteractionResult.SUCCESS;
 
         if (getCurrentState() != TaxState.WAITING) {
-            player.sendSystemMessage(Component.literal("§7[Recaudador] §fNo estoy cobrando en este momento."));
+            player.sendSystemMessage(Component.literal("§7[El Presi] §fNo me entra mas plata en los bolsillos"));
             return InteractionResult.CONSUME;
         }
 
         if (!player.equals(getTargetPlayer())) {
-            player.sendSystemMessage(Component.literal("§7[Recaudador] §fNo es contigo."));
+            player.sendSystemMessage(Component.literal("§7[El Presi] §fNo es con vos la cosa.... Ya te voy a venir a cobrar quedate tranquilo"));
             return InteractionResult.CONSUME;
         }
 
@@ -93,7 +93,7 @@ public class TaxCollectorEntity extends PathfinderMob {
             heldItem.shrink(required);
 
             player.sendSystemMessage(
-                    Component.literal("§a[Recaudador] §fPago recibido. Por ahora... hasta la próxima.")
+                    Component.literal("§a[El Presi] §fPago recibido. Por ahora...hasta la próxima.")
             );
 
             // Feedback visual y auditivo
@@ -107,7 +107,7 @@ public class TaxCollectorEntity extends PathfinderMob {
             this.remove(RemovalReason.DISCARDED);
         } else {
             player.sendSystemMessage(
-                    Component.literal("§c[Recaudador] §fNecesitas §e" + required + " diamante(s)§f.")
+                    Component.literal("§c[El Presi] §fNecesitas §e" + required + " diamante(s)§f.")
             );
             this.level().playSound(null, this.getX(), this.getY(), this.getZ(), SoundEvents.VILLAGER_NO, SoundSource.NEUTRAL, 1.0f, 1.0f);
         }
