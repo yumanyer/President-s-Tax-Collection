@@ -7,6 +7,8 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 
 /**
  * Gestiona la lógica de estados del cobro de impuestos.
@@ -29,6 +31,8 @@ public class TaxStateMachine {
 
     // Indica si el jugador pagó en este ciclo
     private boolean playerPaid = false;
+
+    private boolean greeted = false;
 
     public TaxStateMachine(TaxCollectorEntity mob) {
         this.mob = mob;
@@ -53,7 +57,14 @@ public class TaxStateMachine {
             if (nearby != null) {
                 targetPlayer = nearby;
 
+                //chequeo de diamantes
+                tryUpgradeDebtFromDiamonds(targetPlayer);
+
                 DebtLevel debt = getPlayerDebt(targetPlayer);
+
+                if (debt == DebtLevel.NONE) {
+                    return;
+                }
 
                 if (debt.isCritical()) {
                     transitionTo(TaxCollectorEntity.TaxState.HOSTILE);
@@ -63,7 +74,26 @@ public class TaxStateMachine {
             }
         }
     }
+    /// Detecta si el jugador tiene diamantes
+    private void tryUpgradeDebtFromDiamonds(Player player) {
+        CompoundTag data = player.getPersistentData();
 
+        int current = data.getInt("tax_debt_level");
+
+        // Solo si está en NONE
+        if (current != 0) return;
+
+        // Revisar inventario
+        boolean hasDiamond = player.getInventory().contains(new ItemStack(Items.DIAMOND));
+
+        if (hasDiamond) {
+            data.putInt("tax_debt_level", 1); // LOW
+
+            player.sendSystemMessage(
+                    Component.literal("§6[El Presi] §fMirá vos… ya estás generando ingresos.")
+            );
+        }
+    }
     /// Se acerca al jugador
     private void handleApproach() {
         if (targetPlayer == null || !targetPlayer.isAlive()) {
@@ -145,9 +175,9 @@ public class TaxStateMachine {
     public void transitionTo(TaxCollectorEntity.TaxState newState) {
         this.currentState = newState;
 
-        if (newState == TaxCollectorEntity.TaxState.IDLE ||
-            newState == TaxCollectorEntity.TaxState.APPROACH) {
+        if (newState == TaxCollectorEntity.TaxState.IDLE ||newState == TaxCollectorEntity.TaxState.APPROACH) {
             this.demandMessageSent = false;
+            this.greeted=false;
         }
     }
 
@@ -195,7 +225,13 @@ public class TaxStateMachine {
         CompoundTag data = player.getPersistentData();
 
         int current = data.getInt("tax_debt_level");
-        int next = Math.min(current + 1, DebtLevel.values().length - 1);
+        int next = Math.min(current + 2, DebtLevel.values().length - 1);
+
+        if(current >= 2){
+            next = Math.min(current + 2 , DebtLevel.values().length - 1);
+        }else{
+            next = current + 1;
+        }
 
         data.putInt("tax_debt_level", next);
 
