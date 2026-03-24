@@ -43,8 +43,8 @@ public class Config {
 
         taxPaymentTime = BUILDER
                 .comment("Ticks que tiene el jugador para pagar antes de que el mob ataque.",
-                        "20 ticks = 1 segundo. Default: 200 (10 segundos)")
-                .defineInRange("taxPaymentTime", 200, 40, 1200);
+                        "20 ticks = 1 segundo. Default: 1200 (1 minuto)")
+                .defineInRange("taxPaymentTime", 1200, 20, 6000);
 
         taxAmount = BUILDER
                 .comment("Cantidad de diamantes que el jugador debe entregar para pagar.",
