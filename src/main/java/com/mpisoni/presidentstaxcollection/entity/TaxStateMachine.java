@@ -2,6 +2,7 @@ package com.mpisoni.presidentstaxcollection.entity;
 
 import com.mpisoni.presidentstaxcollection.Config;
 import com.mpisoni.presidentstaxcollection.debt.DebtLevel;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.sounds.SoundEvents;
@@ -25,7 +26,6 @@ public class TaxStateMachine {
 
     //Indico si el jugador pago
     private boolean playerPaid = false;
-    private DebtLevel debtLevel = DebtLevel.NONE;
 
     /// Constructor: inicializa la máquina de estados con la referencia al mob
     public TaxStateMachine(TaxCollectorEntity mob) {
@@ -52,7 +52,17 @@ public class TaxStateMachine {
             Player nearby = findNearestPlayer(12.0);
             if (nearby != null) {
                 targetPlayer = nearby;
-                transitionTo(TaxCollectorEntity.TaxState.APPROACH);
+
+                // Leer deuda acumulada
+                int level = targetPlayer.getPersistentData().getInt("tax_debt_level");
+                DebtLevel debt = DebtLevel.values()[level];
+
+                if (debt.isCritical()) {
+                    // Sin diálogo, ataca directo
+                    transitionTo(TaxCollectorEntity.TaxState.HOSTILE);
+                } else {
+                    transitionTo(TaxCollectorEntity.TaxState.APPROACH);
+                }
             }
         }
     }
@@ -91,8 +101,13 @@ public class TaxStateMachine {
 
         // Si se aleja demasiado → hostil directo
         if (mob.distanceTo(targetPlayer) > 16.0) {
+            // Sube deuda aunque se haya escapado
+            CompoundTag data = targetPlayer.getPersistentData();
+            int current = data.getInt("tax_debt_level");
+            int next = Math.min(current + 1, DebtLevel.values().length - 1);
+            data.putInt("tax_debt_level", next);
+
             targetPlayer.sendSystemMessage(
-                    //se activa despus de que quedan 5 segundos 
                     Component.literal("§c[El Presi] §fDe la muerte y los impuestos no se salva nadie")
             );
             transitionTo(TaxCollectorEntity.TaxState.HOSTILE);
@@ -102,20 +117,24 @@ public class TaxStateMachine {
         // Tick del timer
         paymentTimer--;
 
-        // Aviso a mitad de tiempo
-        if (paymentTimer == Config.taxPaymentTime.get() / 2) {
-            int secondsLeft = paymentTimer / 20;
+        // Aviso cuando quedan 5 segundos exactos
+        if (paymentTimer == 100) {
             targetPlayer.sendSystemMessage(
-                    Component.literal("§e[El Presi] §fTe quedan §c" + secondsLeft + " §fsegundos para pagar.")
+                    Component.literal("§e[El Presi] §fTe quedan §c5 §fsegundos para pagar.")
             );
         }
 
         // Si se terminó el tiempo
         if (paymentTimer <= 0) {
 
-            // Si NO pagó → escalar deuda y mensaje
+            // Si NO pagó → escalar deuda en NBT y mandar mensaje
             if (!playerPaid) {
-                debtLevel = debtLevel.next(); // sube nivel
+                CompoundTag data = targetPlayer.getPersistentData();
+                int current = data.getInt("tax_debt_level");
+                int next = Math.min(current + 1, DebtLevel.values().length - 1);
+                data.putInt("tax_debt_level", next);
+
+                DebtLevel debtLevel = DebtLevel.values()[next];
                 targetPlayer.sendSystemMessage(
                         Component.literal(debtLevel.getMessage())
                 );
@@ -149,18 +168,32 @@ public class TaxStateMachine {
     private void sendDemandMessage() {
         if (targetPlayer == null) return;
 
+        // Leer nivel de deuda actual del jugador
+        int level = targetPlayer.getPersistentData().getInt("tax_debt_level");
+        DebtLevel currentDebt = DebtLevel.values()[level];
+
         int seconds = Config.taxPaymentTime.get() / 20;
+        int required = Config.taxAmount.get();
+
+        // Mensaje base siempre se manda
         targetPlayer.sendSystemMessage(
                 Component.literal("§6[El Presi] §fDebes pagar §e"
-                        + Config.taxAmount.get() + " diamante(s)§f. Tienes §c"
+                        + required + " diamante(s)§f. Tienes §c"
                         + seconds + " segundos§f.")
         );
+
+        // Mensaje adicional según nivel de deuda
+         // solo si ya tiene deuda previa
+            targetPlayer.sendSystemMessage(
+                    Component.literal("§c[El Presi] §f" + currentDebt.getMessage())
+            );
 
         targetPlayer.sendSystemMessage(
                 Component.literal("§7Click derecho con diamantes para pagar.")
         );
 
-        mob.level().playSound(null, mob.getX(), mob.getY(), mob.getZ(), SoundEvents.VILLAGER_TRADE, SoundSource.NEUTRAL, 1.0f, 1.0f);
+        mob.level().playSound(null, mob.getX(), mob.getY(), mob.getZ(),
+                SoundEvents.VILLAGER_TRADE, SoundSource.NEUTRAL, 1.0f, 1.0f);
     }
     /// Busca el jugador más cercano dentro de un radio dado
     /// Ignora jugadores en creativo o espectador
