@@ -6,9 +6,9 @@ license="MIT"
 modId="presidentstaxcollection"
 version="1.0"
 displayName="President's Tax Collection"
-authors="Manuel Pisoni"
+authors="Yumanyer"
 description='''
-Mod que agrega un Tax Collector: un sistema económico hostil donde el jugador debe pagar impuestos o enfrentar consecuencias.
+Mod que agrega un Tax Collector: Una satira a los presidentes en el cual este spawenea pidiendo la paga de impuestos y tomando una postura hostil si el jugador se niega  a pagar.
 '''
 
 [[dependencies.presidentstaxcollection]]

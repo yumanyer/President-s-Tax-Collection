@@ -39,14 +39,14 @@ public class TaxCollectorEntity extends PathfinderMob {
     }
 
     /**
-     * Define los atributos base de la entidad.
+     * Definp los atributos base de la entidad.
      */
     public static AttributeSupplier.Builder createAttributes() {
         return PathfinderMob.createMobAttributes()
-                .add(Attributes.MAX_HEALTH, 40.0)
-                .add(Attributes.MOVEMENT_SPEED, 0.25)
-                .add(Attributes.ATTACK_DAMAGE, 6.0)
-                .add(Attributes.FOLLOW_RANGE, 16.0);
+                .add(Attributes.MAX_HEALTH, 40.0) //VIDA
+                .add(Attributes.MOVEMENT_SPEED, 0.30) //RAPIDEZ
+                .add(Attributes.ATTACK_DAMAGE, 7.0) //ATAQUE
+                .add(Attributes.FOLLOW_RANGE, 16.0); //RANGO DE SEGUIMINETO
     }
 
     @Override
@@ -77,6 +77,7 @@ public class TaxCollectorEntity extends PathfinderMob {
         if (this.level().isClientSide) return InteractionResult.SUCCESS;
 
         if (getCurrentState() != TaxState.WAITING) {
+            //se activa cuando el jugador intenta pagar despues del tiempo 
             player.sendSystemMessage(Component.literal("§7[El Presi] §fNo me entra mas plata en los bolsillos"));
             return InteractionResult.CONSUME;
         }
