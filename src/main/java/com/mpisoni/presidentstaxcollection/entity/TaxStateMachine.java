@@ -211,7 +211,7 @@ public class TaxStateMachine {
 
         mob.level().playSound(null, mob.getX(), mob.getY(), mob.getZ(),
                 SoundEvents.VILLAGER_TRADE, SoundSource.NEUTRAL, 1.0f, 1.0f);
-}
+    }
 
     /// Obtiene deuda segura
     private DebtLevel getPlayerDebt(Player player) {

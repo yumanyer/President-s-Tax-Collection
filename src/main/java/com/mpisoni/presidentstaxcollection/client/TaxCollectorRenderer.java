@@ -15,6 +15,6 @@ public class TaxCollectorRenderer extends HumanoidMobRenderer<TaxCollectorEntity
 
     @Override
     public ResourceLocation getTextureLocation(TaxCollectorEntity entity) {
-        return new ResourceLocation("presidentstaxcollection", "textures/entity/tax_collector.png");
+        return new ResourceLocation("presidentstaxcollection",  "textures/entity/tax_collector.png");
     }
 }
