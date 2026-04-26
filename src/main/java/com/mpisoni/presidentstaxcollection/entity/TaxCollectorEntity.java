@@ -78,12 +78,12 @@ public class TaxCollectorEntity extends PathfinderMob {
 
         if (getCurrentState() != TaxState.WAITING) {
             //se activa cuando el jugador intenta pagar despues del tiempo 
-            player.sendSystemMessage(Component.literal("§7[El Presi] §fNo me entra mas plata en los bolsillos"));
+            player.sendSystemMessage(Component.translatable("chat.presidentstaxcollection.no_more_money"));
             return InteractionResult.CONSUME;
         }
 
         if (!player.equals(getTargetPlayer())) {
-            player.sendSystemMessage(Component.literal("§7[El Presi] §fNo es con vos la cosa.... Ya te voy a venir a cobrar quedate tranquilo"));
+            player.sendSystemMessage(Component.translatable("chat.presidentstaxcollection.not_your_your_debt"));
             return InteractionResult.CONSUME;
         }
 
@@ -94,7 +94,7 @@ public class TaxCollectorEntity extends PathfinderMob {
             heldItem.shrink(required);
 
             player.sendSystemMessage(
-                    Component.literal("§a[El Presi] §fPago recibido. Por ahora...hasta la próxima.")
+                    Component.translatable("chat.presidentstaxcollection.payment_received")
             );
 
             // Feedback visual y auditivo
@@ -108,7 +108,10 @@ public class TaxCollectorEntity extends PathfinderMob {
             this.remove(RemovalReason.DISCARDED);
         } else {
             player.sendSystemMessage(
-                    Component.literal("§c[El Presi] §fNecesitas §e" + required + " diamante(s)§f.")
+                Component.translatable(
+                    "chat.presidentstaxcollection.need_diamonds",
+                    required
+                )
             );
             this.level().playSound(null, this.getX(), this.getY(), this.getZ(), SoundEvents.VILLAGER_NO, SoundSource.NEUTRAL, 1.0f, 1.0f);
         }

@@ -1,0 +1,59 @@
+{
+  "entity.presidentstaxcollection.tax_collector": "Tax Collector",
+
+  "chat.presidentstaxcollection.income_detected": "§6[The President] §fLook at that... you're already generating income.",
+  "chat.presidentstaxcollection.escape_consequence": "§c[The President] §fNo one escapes death and taxes. Next time will be harder.",
+  "chat.presidentstaxcollection.kill_consequence": "§c[The President] §fYou beat me this time... but next time will be worse. The State doesn't forget.",
+
+  "chat.presidentstaxcollection.time_remaining": "§e[The President] §fYou have §c%s §fseconds left to pay.",
+  "chat.presidentstaxcollection.demand_payment": "§6[The President] §fYou must pay §e%s diamond(s)§f. You have §c%s seconds§f.",
+  "chat.presidentstaxcollection.payment_instruction": "§7Right-click with diamonds to pay.",
+  "chat.presidentstaxcollection.payment_received": "§a[The President] §fPayment received. For now... until next time.",
+
+  "chat.presidentstaxcollection.not_your_debt": "§7[The President] §fThis isn't about you... I'll come to collect, don't worry.",
+  "chat.presidentstaxcollection.no_more_money": "§c[The President] §fIt's too late to back out now.",
+  "chat.presidentstaxcollection.need_diamonds": "§c[The President] §fYou need §e%s §fdiamond(s) to pay your debt.",
+
+  "chat.presidentstaxcollection.debt_none": "You have no outstanding debts.",
+  "chat.presidentstaxcollection.debt_low": "I have a couple of invoices that don't match your income...",
+  "chat.presidentstaxcollection.debt_medium": "It seems to me you forgot to declare some diamonds, didn't you?",
+  "chat.presidentstaxcollection.debt_high": "The IRS personally sent me to retrieve what is ours.",
+  "chat.presidentstaxcollection.debt_critical": "Your debt is unpayable. The State doesn't forget.",
+
+  "subtitles.presidentstaxcollection.tax_collector_ambient": "Tax collector mutters.",
+  "subtitles.presidentstaxcollection.tax_collector_hurt": "Tax collector wounded.",
+  "subtitles.presidentstaxcollection.tax_collector_death": "Tax collector dies.",
+  "subtitles.presidentstaxcollection.tax_collector_demand": "Tax collector demands payment",
+  "subtitles.presidentstaxcollection.tax_collector_payment_received": "Tax payment accepted",
+  "subtitles.presidentstaxcollection.tax_collector_payment_denied": "Tax payment denied",
+
+  "chat.presidentstaxcollection.debt.none.1": "Nice to see you debt-free. Almost makes me feel bad showing up.",
+  "chat.presidentstaxcollection.debt.none.2": "Everything’s in order… for now.",
+  "chat.presidentstaxcollection.debt.none.3": "You're clean today. Enjoy it while it lasts.",
+  "chat.presidentstaxcollection.debt.none.4": "You owe nothing… that makes me uncomfortable.",
+  "chat.presidentstaxcollection.debt.none.5": "I don’t see people like you often… no debts at all.",
+
+  "chat.presidentstaxcollection.debt.low.1": "It’s small… but not free. Pay up and we’re good.",
+  "chat.presidentstaxcollection.debt.low.2": "Still manageable. Don’t turn it into a problem.",
+  "chat.presidentstaxcollection.debt.low.3": "Even small debts get collected.",
+  "chat.presidentstaxcollection.debt.low.4": "Don’t make me escalate this over a diamond.",
+  "chat.presidentstaxcollection.debt.low.5": "We can solve this easily… or make it complicated.",
+
+  "chat.presidentstaxcollection.debt.medium.1": "Now you owe me… and I don’t like  myself.",
+  "chat.presidentstaxcollection.debt.medium.2": "It’s piling up… and so am I.",
+  "chat.presidentstaxcollection.debt.medium.3": "Don’t play dumb. I know exactly what you owe.",
+  "chat.presidentstaxcollection.debt.medium.4": "This isn’t as small as you think anymore.",
+  "chat.presidentstaxcollection.debt.medium.5": "You’re starting to worry me… and that’s bad for you.",
+
+  "chat.presidentstaxcollection.debt.high.1": "Someone’s about to lose more than diamonds.",
+  "chat.presidentstaxcollection.debt.high.2": "This isn’t a joke anymore. Patience is over.",
+  "chat.presidentstaxcollection.debt.high.3": "Nice house… would be a shame.",
+  "chat.presidentstaxcollection.debt.high.4": "We’re not negotiating anymore.",
+  "chat.presidentstaxcollection.debt.high.5": "You’re forcing my hand.",
+
+  "chat.presidentstaxcollection.debt.critical.1": "You’re not a debtor anymore… you’re a problem.",
+  "chat.presidentstaxcollection.debt.critical.2": "You belong to me now. And I will collect.",
+  "chat.presidentstaxcollection.debt.critical.3": "I gave you chances. Now you get consequences.",
+  "chat.presidentstaxcollection.debt.critical.4": "No deals. Only execution.",
+  "chat.presidentstaxcollection.debt.critical.5": "Run if you want… I enjoy the chase."
+}

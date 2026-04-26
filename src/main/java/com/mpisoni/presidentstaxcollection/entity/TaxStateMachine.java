@@ -10,29 +10,16 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 
-/**
- * Gestiona la lógica de estados del cobro de impuestos.
- */
 public class TaxStateMachine {
 
     private final TaxCollectorEntity mob;
 
-    // Estado actual del mob
     private TaxCollectorEntity.TaxState currentState = TaxCollectorEntity.TaxState.IDLE;
-
-    // Jugador objetivo
     private Player targetPlayer = null;
 
-    // Tiempo restante para pagar (ticks)
     private int paymentTimer = 0;
-
-    // Evita spam de mensajes
     private boolean demandMessageSent = false;
-
-    // Indica si el jugador pagó en este ciclo
     private boolean playerPaid = false;
-
-    private boolean greeted = false;
 
     public TaxStateMachine(TaxCollectorEntity mob) {
         this.mob = mob;
@@ -50,51 +37,31 @@ public class TaxStateMachine {
         }
     }
 
-    /// Busca jugadores cercanos
+    /// =========================
+    /// ESTADOS
+    /// =========================
+
     private void handleIdle() {
-        if (mob.tickCount % 20 == 0) {
-            Player nearby = findNearestPlayer(12.0);
-            if (nearby != null) {
-                targetPlayer = nearby;
+        if (mob.tickCount % 20 != 0) return;
 
-                //chequeo de diamantes
-                tryUpgradeDebtFromDiamonds(targetPlayer);
+        Player nearby = findNearestPlayer(12.0);
+        if (nearby == null) return;
 
-                DebtLevel debt = getPlayerDebt(targetPlayer);
+        targetPlayer = nearby;
 
-                if (debt == DebtLevel.NONE) {
-                    return;
-                }
+        tryUpgradeDebtFromDiamonds(targetPlayer);
 
-                if (debt.isCritical()) {
-                    transitionTo(TaxCollectorEntity.TaxState.HOSTILE);
-                } else {
-                    transitionTo(TaxCollectorEntity.TaxState.APPROACH);
-                }
-            }
+        DebtLevel debt = getPlayerDebt(targetPlayer);
+
+        if (debt == DebtLevel.NONE) return;
+
+        if (debt.isCritical()) {
+            transitionTo(TaxCollectorEntity.TaxState.HOSTILE);
+        } else {
+            transitionTo(TaxCollectorEntity.TaxState.APPROACH);
         }
     }
-    /// Detecta si el jugador tiene diamantes
-    private void tryUpgradeDebtFromDiamonds(Player player) {
-        CompoundTag data = player.getPersistentData();
 
-        int current = data.getInt("tax_debt_level");
-
-        // Solo si está en NONE
-        if (current != 0) return;
-
-        // Revisar inventario
-        boolean hasDiamond = player.getInventory().contains(new ItemStack(Items.DIAMOND));
-
-        if (hasDiamond) {
-            data.putInt("tax_debt_level", 1); // LOW
-
-            player.sendSystemMessage(
-                    Component.literal("§6[El Presi] §fMirá vos… ya estás generando ingresos.")
-            );
-        }
-    }
-    /// Se acerca al jugador
     private void handleApproach() {
         if (targetPlayer == null || !targetPlayer.isAlive()) {
             transitionTo(TaxCollectorEntity.TaxState.IDLE);
@@ -106,32 +73,30 @@ public class TaxStateMachine {
         }
     }
 
-    /// Inicia cobro
     private void handleDemandPayment() {
         if (!demandMessageSent) {
             sendDemandMessage();
             demandMessageSent = true;
         }
 
-        playerPaid = false; // reset
+        playerPaid = false;
         paymentTimer = Config.taxPaymentTime.get();
 
         transitionTo(TaxCollectorEntity.TaxState.WAITING);
     }
 
-    /// Espera pago
     private void handleWaiting() {
         if (targetPlayer == null || !targetPlayer.isAlive()) {
             transitionTo(TaxCollectorEntity.TaxState.IDLE);
             return;
         }
 
-        // Se escapa → sube deuda
+        // Escapó
         if (mob.distanceTo(targetPlayer) > 16.0) {
             increaseDebt(targetPlayer);
 
-            targetPlayer.sendSystemMessage(
-                    Component.literal("§c[El Presi] §fDe la muerte y los impuestos no se salva nadie")
+            sendMessage(targetPlayer,
+                    "chat.presidentstaxcollection.escape_consequence"
             );
 
             transitionTo(TaxCollectorEntity.TaxState.HOSTILE);
@@ -140,21 +105,21 @@ public class TaxStateMachine {
 
         paymentTimer--;
 
-        // Aviso a mitad de tiempo
+        // Mitad del tiempo
         if (paymentTimer == Config.taxPaymentTime.get() / 2) {
-            int secondsLeft = paymentTimer / 20;
-            targetPlayer.sendSystemMessage(
-                    Component.literal("§e[El Presi] §fTe quedan §c" + secondsLeft + " §fsegundos para pagar.")
+            sendMessage(targetPlayer,
+                    "chat.presidentstaxcollection.time_remaining",
+                    paymentTimer / 20
             );
         }
 
-        // Tiempo agotado
+        // Timeout
         if (paymentTimer <= 0) {
             if (!playerPaid) {
-                DebtLevel newDebt = increaseDebt(targetPlayer);
+                increaseDebt(targetPlayer);
 
-                targetPlayer.sendSystemMessage(
-                        Component.literal("§c[El Presi] §f" + newDebt.getRandomMessage(mob.getRandom()))
+                sendMessage(targetPlayer,
+                        "chat.presidentstaxcollection.no_more_money"
                 );
             }
 
@@ -162,7 +127,6 @@ public class TaxStateMachine {
         }
     }
 
-    /// Ataca
     private void handleHostile() {
         if (targetPlayer != null && targetPlayer.isAlive()) {
             mob.setTarget(targetPlayer);
@@ -175,13 +139,16 @@ public class TaxStateMachine {
     public void transitionTo(TaxCollectorEntity.TaxState newState) {
         this.currentState = newState;
 
-        if (newState == TaxCollectorEntity.TaxState.IDLE ||newState == TaxCollectorEntity.TaxState.APPROACH) {
+        if (newState == TaxCollectorEntity.TaxState.IDLE
+                || newState == TaxCollectorEntity.TaxState.APPROACH) {
             this.demandMessageSent = false;
-            this.greeted=false;
         }
     }
 
-    /// Mensaje inicial
+    /// =========================
+    /// MENSAJES
+    /// =========================
+
     private void sendDemandMessage() {
         if (targetPlayer == null) return;
 
@@ -190,53 +157,89 @@ public class TaxStateMachine {
         int seconds = Config.taxPaymentTime.get() / 20;
         int required = debt.getDiamonds();
 
-        //mensaje narrativo 
-        if (debt != DebtLevel.NONE) {
-            targetPlayer.sendSystemMessage(
-                    Component.literal("§c[El Presi] §f" + debt.getRandomMessage(mob.getRandom()))
-            );
-        }
+        // narrativa dinámica (desde lang)
+        sendDebtNarrative(targetPlayer, debt);
 
-        // orden de pago (
-        targetPlayer.sendSystemMessage(
-                Component.literal("§6[El Presi] §fDebes pagar §e"
-                        + required + " diamante(s)§f. Tienes §c"
-                        + seconds + " segundos§f.")
+        // orden de pago
+        sendMessage(targetPlayer,
+                "chat.presidentstaxcollection.demand_payment",
+                required,
+                seconds
         );
 
-        // Instrucción final
-        targetPlayer.sendSystemMessage(
-                Component.literal("§7Click derecho con diamantes para pagar.")
+        // instrucción
+        sendMessage(targetPlayer,
+                "chat.presidentstaxcollection.payment_instruction"
         );
 
-        mob.level().playSound(null, mob.getX(), mob.getY(), mob.getZ(),
-                SoundEvents.VILLAGER_TRADE, SoundSource.NEUTRAL, 1.0f, 1.0f);
+        mob.level().playSound(null,
+                mob.getX(), mob.getY(), mob.getZ(),
+                SoundEvents.VILLAGER_TRADE,
+                SoundSource.NEUTRAL,
+                1.0f, 1.0f
+        );
     }
 
-    /// Obtiene deuda segura
+    private void sendDebtNarrative(Player player, DebtLevel debt) {
+        if (debt == DebtLevel.NONE) return;
+
+        String key = debt.getRandomMessageKey(mob.getRandom());
+
+        player.sendSystemMessage(
+                Component.translatable(key)
+        );
+    }
+
+    private void sendMessage(Player player, String key, Object... args) {
+        player.sendSystemMessage(
+                Component.translatable(key, args)
+        );
+    }
+
+    /// =========================
+    /// LÓGICA DE DEUDA
+    /// =========================
+
+    private void tryUpgradeDebtFromDiamonds(Player player) {
+        CompoundTag data = player.getPersistentData();
+
+        int current = data.getInt("tax_debt_level");
+        if (current != 0) return;
+
+        boolean hasDiamond = player.getInventory().contains(new ItemStack(Items.DIAMOND));
+
+        if (hasDiamond) {
+            data.putInt("tax_debt_level", 1);
+
+            sendMessage(player,
+                    "chat.presidentstaxcollection.income_detected"
+            );
+        }
+    }
+
     private DebtLevel getPlayerDebt(Player player) {
         int level = player.getPersistentData().getInt("tax_debt_level");
         level = Math.min(level, DebtLevel.values().length - 1);
         return DebtLevel.values()[level];
     }
 
-    /// Aumenta deuda
     private DebtLevel increaseDebt(Player player) {
         CompoundTag data = player.getPersistentData();
 
         int current = data.getInt("tax_debt_level");
-        int next = Math.min(current + 2, DebtLevel.values().length - 1);
 
-        if(current >= 2){
-            next = Math.min(current + 2 , DebtLevel.values().length - 1);
-        }else{
-            next = current + 1;
-        }
+        int next = (current < 2)
+                ? current + 1
+                : Math.min(current + 2, DebtLevel.values().length - 1);
 
         data.putInt("tax_debt_level", next);
 
         return DebtLevel.values()[next];
     }
+
+    /// =========================
+    /// UTILS
+    /// =========================
 
     private Player findNearestPlayer(double radius) {
         var box = mob.getBoundingBox().inflate(radius);
@@ -257,6 +260,11 @@ public class TaxStateMachine {
         return closest;
     }
 
-    public TaxCollectorEntity.TaxState getCurrentState() { return currentState; }
-    public Player getTargetPlayer() { return targetPlayer; }
+    public TaxCollectorEntity.TaxState getCurrentState() {
+        return currentState;
+    }
+
+    public Player getTargetPlayer() {
+        return targetPlayer;
+    }
 }
