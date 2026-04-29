@@ -71,7 +71,6 @@ public enum DebtLevel {
     }
 
     /// Genera una key aleatoria para usar con Component.translatable(...)
-    /// Ej: chat.presidentstaxcollection.debt.high.3
     public String getRandomMessageKey(RandomSource random) {
         int index = random.nextInt(messageCount) + 1;
         return "chat.presidentstaxcollection.debt."

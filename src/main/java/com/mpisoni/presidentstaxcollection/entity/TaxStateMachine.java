@@ -2,11 +2,13 @@ package com.mpisoni.presidentstaxcollection.entity;
 
 import com.mpisoni.presidentstaxcollection.Config;
 import com.mpisoni.presidentstaxcollection.debt.DebtLevel;
-import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
-import net.minecraft.world.entity.player.Player;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.level.ServerBossEvent;
+import net.minecraft.world.BossEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 
@@ -18,33 +20,86 @@ public class TaxStateMachine {
     private Player targetPlayer = null;
 
     private int paymentTimer = 0;
-    private boolean demandMessageSent = false;
     private boolean playerPaid = false;
+
+    // 🔴 BossBar
+    private final ServerBossEvent bossBar;
 
     public TaxStateMachine(TaxCollectorEntity mob) {
         this.mob = mob;
+
+        
+
+        this.bossBar = new ServerBossEvent(
+                Component.literal("Pago de impuestos"),
+                BossEvent.BossBarColor.RED,
+                BossEvent.BossBarOverlay.PROGRESS
+
+        );
+        
     }
 
     public void tick() {
+
+        if (mob.isRemoved() || !mob.isAlive()) {
+        removeBossBar();
+        return;
+    }
         if (mob.level().isClientSide) return;
+
 
         switch (currentState) {
             case IDLE -> handleIdle();
             case APPROACH -> handleApproach();
-            case DEMAND_PAYMENT -> handleDemandPayment();
             case WAITING -> handleWaiting();
             case HOSTILE -> handleHostile();
         }
     }
 
-    /// =========================
-    /// ESTADOS
-    /// =========================
+
+
+    // =========================
+    // TRANSITIONS
+    // =========================
+
+    public void transitionTo(TaxCollectorEntity.TaxState newState) {
+        if (this.currentState == newState) return;
+
+        this.currentState = newState;
+        onEnter(newState);
+    }
+
+    private void onEnter(TaxCollectorEntity.TaxState state) {
+        switch (state) {
+
+            case WAITING -> {
+                startPaymentFlow();
+
+                if (targetPlayer instanceof ServerPlayer sp) {
+                    bossBar.addPlayer(sp);
+                }
+            }
+
+            case IDLE -> {
+                removeBossBar();
+                targetPlayer = null;
+                mob.setTarget(null);
+            }
+
+            case HOSTILE -> {
+                removeBossBar();
+            }
+        }
+    }
+
+    // =========================
+    // ESTADOS
+    // =========================
 
     private void handleIdle() {
         if (mob.tickCount % 20 != 0) return;
 
-        Player nearby = findNearestPlayer(12.0);
+        Player nearby = findNearestPlayer(16.0);
         if (nearby == null) return;
 
         targetPlayer = nearby;
@@ -52,7 +107,6 @@ public class TaxStateMachine {
         tryUpgradeDebtFromDiamonds(targetPlayer);
 
         DebtLevel debt = getPlayerDebt(targetPlayer);
-
         if (debt == DebtLevel.NONE) return;
 
         if (debt.isCritical()) {
@@ -63,72 +117,84 @@ public class TaxStateMachine {
     }
 
     private void handleApproach() {
-        if (targetPlayer == null || !targetPlayer.isAlive()) {
+        if (!isValidTarget()) {
+            transitionTo(TaxCollectorEntity.TaxState.IDLE);
+            return;
+        }
+
+        DebtLevel debt = getPlayerDebt(targetPlayer);
+        if (debt == DebtLevel.NONE) {
             transitionTo(TaxCollectorEntity.TaxState.IDLE);
             return;
         }
 
         if (mob.distanceTo(targetPlayer) < 3.0) {
-            transitionTo(TaxCollectorEntity.TaxState.DEMAND_PAYMENT);
+            transitionTo(TaxCollectorEntity.TaxState.WAITING);
         }
     }
 
-    private void handleDemandPayment() {
-        if (!demandMessageSent) {
-            sendDemandMessage();
-            demandMessageSent = true;
-        }
+private void handleWaiting() {
+    System.out.println("TIEMPO: " + Config.taxPaymentTime.get());
+
+
+    // ✔ PAGO
+    if (playerPaid) {
+        removeBossBar();
+
+        sendMessage(targetPlayer,
+                "chat.presidentstaxcollection.payment_success");
 
         playerPaid = false;
-        paymentTimer = Config.taxPaymentTime.get();
-
-        transitionTo(TaxCollectorEntity.TaxState.WAITING);
+        transitionTo(TaxCollectorEntity.TaxState.IDLE);
+        return;
     }
 
-    private void handleWaiting() {
-        if (targetPlayer == null || !targetPlayer.isAlive()) {
-            transitionTo(TaxCollectorEntity.TaxState.IDLE);
-            return;
-        }
+    // escapó
+    if (mob.distanceTo(targetPlayer) > 16.0) {
+        increaseDebt(targetPlayer);
+        sendMessage(targetPlayer, "chat.presidentstaxcollection.escape_consequence");
 
-        // Escapó
-        if (mob.distanceTo(targetPlayer) > 16.0) {
-            increaseDebt(targetPlayer);
+        removeBossBar();
+        transitionTo(TaxCollectorEntity.TaxState.HOSTILE);
+        return;
+    }
 
-            sendMessage(targetPlayer,
-                    "chat.presidentstaxcollection.escape_consequence"
-            );
+    // bossbar
+    float progress = Math.max(0f,
+            (float) paymentTimer / Config.taxPaymentTime.get());
+    bossBar.setProgress(progress);
 
-            transitionTo(TaxCollectorEntity.TaxState.HOSTILE);
-            return;
-        }
+    bossBar.setName(
+            Component.literal("Tiempo restante: " + (paymentTimer / 20) + "s")
+    );
 
+    // mitad del tiempo
+    if (paymentTimer == Config.taxPaymentTime.get() / 2) {
+        sendMessage(targetPlayer,
+                "chat.presidentstaxcollection.time_remaining",
+                paymentTimer / 20
+        );
+    }
+
+    if (paymentTimer > 0) {
         paymentTimer--;
-
-        // Mitad del tiempo
-        if (paymentTimer == Config.taxPaymentTime.get() / 2) {
-            sendMessage(targetPlayer,
-                    "chat.presidentstaxcollection.time_remaining",
-                    paymentTimer / 20
-            );
-        }
-
-        // Timeout
-        if (paymentTimer <= 0) {
-            if (!playerPaid) {
-                increaseDebt(targetPlayer);
-
-                sendMessage(targetPlayer,
-                        "chat.presidentstaxcollection.no_more_money"
-                );
-            }
-
-            transitionTo(TaxCollectorEntity.TaxState.HOSTILE);
-        }
     }
+
+    // timeout
+    if (paymentTimer <= 0) {
+        if (!playerPaid) {
+            increaseDebt(targetPlayer);
+            sendMessage(targetPlayer,
+                    "chat.presidentstaxcollection.no_more_money");
+        }
+
+        removeBossBar();
+        transitionTo(TaxCollectorEntity.TaxState.HOSTILE);
+    }
+}
 
     private void handleHostile() {
-        if (targetPlayer != null && targetPlayer.isAlive()) {
+        if (isValidTarget()) {
             mob.setTarget(targetPlayer);
         } else {
             mob.setTarget(null);
@@ -136,38 +202,49 @@ public class TaxStateMachine {
         }
     }
 
-    public void transitionTo(TaxCollectorEntity.TaxState newState) {
-        this.currentState = newState;
+    // =========================
+    // FLOW DE PAGO
+    // =========================
 
-        if (newState == TaxCollectorEntity.TaxState.IDLE
-                || newState == TaxCollectorEntity.TaxState.APPROACH) {
-            this.demandMessageSent = false;
-        }
-    }
-
-    /// =========================
-    /// MENSAJES
-    /// =========================
-
-    private void sendDemandMessage() {
+    private void startPaymentFlow() {
         if (targetPlayer == null) return;
 
+        playerPaid = false;
+        paymentTimer = Config.taxPaymentTime.get();
+
+        sendDemandMessage();
+    }
+
+    private void removeBossBar() {
+        bossBar.removeAllPlayers();
+    }
+
+    // =========================
+    // VALIDACIONES
+    // =========================
+
+    private boolean isValidTarget() {
+        return targetPlayer != null && targetPlayer.isAlive();
+    }
+
+    // =========================
+    // MENSAJES
+    // =========================
+
+    private void sendDemandMessage() {
         DebtLevel debt = getPlayerDebt(targetPlayer);
 
         int seconds = Config.taxPaymentTime.get() / 20;
         int required = debt.getDiamonds();
 
-        // narrativa dinámica (desde lang)
         sendDebtNarrative(targetPlayer, debt);
 
-        // orden de pago
         sendMessage(targetPlayer,
                 "chat.presidentstaxcollection.demand_payment",
                 required,
                 seconds
         );
 
-        // instrucción
         sendMessage(targetPlayer,
                 "chat.presidentstaxcollection.payment_instruction"
         );
@@ -185,35 +262,26 @@ public class TaxStateMachine {
 
         String key = debt.getRandomMessageKey(mob.getRandom());
 
-        player.sendSystemMessage(
-                Component.translatable(key)
-        );
+        player.sendSystemMessage(Component.translatable(key));
     }
 
     private void sendMessage(Player player, String key, Object... args) {
-        player.sendSystemMessage(
-                Component.translatable(key, args)
-        );
+        player.sendSystemMessage(Component.translatable(key, args));
     }
 
-    /// =========================
-    /// LÓGICA DE DEUDA
-    /// =========================
+    // =========================
+    // DEUDA (PENDIENTE → CAPABILITY)
+    // =========================
 
     private void tryUpgradeDebtFromDiamonds(Player player) {
-        CompoundTag data = player.getPersistentData();
-
-        int current = data.getInt("tax_debt_level");
+        int current = player.getPersistentData().getInt("tax_debt_level");
         if (current != 0) return;
 
         boolean hasDiamond = player.getInventory().contains(new ItemStack(Items.DIAMOND));
 
         if (hasDiamond) {
-            data.putInt("tax_debt_level", 1);
-
-            sendMessage(player,
-                    "chat.presidentstaxcollection.income_detected"
-            );
+            player.getPersistentData().putInt("tax_debt_level", 1);
+            sendMessage(player, "chat.presidentstaxcollection.income_detected");
         }
     }
 
@@ -224,22 +292,20 @@ public class TaxStateMachine {
     }
 
     private DebtLevel increaseDebt(Player player) {
-        CompoundTag data = player.getPersistentData();
-
-        int current = data.getInt("tax_debt_level");
+        int current = player.getPersistentData().getInt("tax_debt_level");
 
         int next = (current < 2)
                 ? current + 1
                 : Math.min(current + 2, DebtLevel.values().length - 1);
 
-        data.putInt("tax_debt_level", next);
+        player.getPersistentData().putInt("tax_debt_level", next);
 
         return DebtLevel.values()[next];
     }
 
-    /// =========================
-    /// UTILS
-    /// =========================
+    // =========================
+    // UTILS
+    // =========================
 
     private Player findNearestPlayer(double radius) {
         var box = mob.getBoundingBox().inflate(radius);
